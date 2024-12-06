@@ -1,0 +1,32 @@
+services:
+  redis:
+    image: redis
+    command: redis-server
+    ports:
+      - '6379:6379'
+
+  web:
+    build: .
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+
+  worker_channels:
+    build: .
+    command: python manage.py runworker channels
+    volumes:
+      - .:/app
+    links:
+      - redis
+
+  channels:
+    build: .
+    command: daphne -b 0.0.0.0 -p 8001 chatwebsite.asgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8001:8001"
+    links:
+      - redis

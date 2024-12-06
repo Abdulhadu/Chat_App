@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Chat Lobby</title>
+    <style>
+      body {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 100vh;
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #f2e8cf; /* Light background */
+      }
+    
+      .logout {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        text-decoration: none;
+        font-size: 14px;
+        padding: 5px 10px;
+        border: 1px solid #bc4749;
+        border-radius: 4px;
+        color: #f2e8cf;
+        background-color: #bc4749; /* Dark red */
+      }
+    
+      .logout:hover {
+        background-color: #a73d41;
+      }
+    
+      #form {
+        margin-top: 10px;
+      }
+    
+      input[type="text"] {
+        padding: 10px;
+        font-size: 14px;
+        width: 400px;
+        margin-right: 10px;
+        margin-top: 10px;
+        border: 1px solid #6a994e;
+        border-radius: 4px;
+      }
+    
+      button {
+        padding: 10px 20px;
+        font-size: 14px;
+        background-color: #a7c957; /* Greenish yellow */
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+    
+      button:hover {
+        background-color: #6a994e; /* Deep green */
+      }
+    
+      #messages {
+        display: flex;
+        flex-direction: column;
+        height: 400px;
+        width: 500px;
+        border: 1px solid #386641;
+        font: 16px/26px Georgia, Garamond, Serif;
+        overflow-y: auto;
+        padding: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        background-color: #f2e8cf; /* Light background */
+      }
+    
+      .message {
+        margin: 5px 0;
+        padding: 10px;
+        border-radius: 8px;
+        max-width: 70%;
+        word-wrap: break-word;
+      }
+    
+      .sent {
+        align-self: flex-end;
+        background-color: #6a994e; /* Deep green */
+        color: white;
+      }
+    
+      .received {
+        align-self: flex-start;
+        background-color: #a7c957; /* Greenish yellow */
+        color: white;
+      }
+
+      .status {
+        font-size: 12px;
+        color: #386641; /* Dark green for status text */
+        display: block;
+        margin-top: 5px;
+      }
+
+      /* New styling for user activity */
+      .activity {
+        margin: 10px 0;
+        padding: 8px;
+        border-radius: 6px;
+        font-size: 14px;
+        text-align: center;
+        background-color: #e8c3c3; /* Soft red background */
+        color: #bc4749; /* Dark red text */
+        font-style: italic;
+      }
+    
+      .activity.logged-in {
+        background-color: #cce3d2; /* Light green background */
+        color: #6a994e; /* Deep green text */
+      }
+    
+      .activity.logged-out {
+        background-color: #f9e2d4; /* Light peach background */
+        color: #bc4749; /* Dark red text */
+      }
+    </style>
+  </head>
+  <body>
+    <h1>{{ greeting }}, {{ username }}</h1>
+    <a class="logout" href="{% url 'logout' %}">Logout</a>
+    <h2>Let's Chat</h2>
+    <div id="messages">
+      {% for message in messages %}
+      <div
+        id="message-{{ message.id }}"
+        class="message {% if message.user.username == username %}sent{% else %}received{% endif %}"
+      >
+        {{ message.user.username }}: {{ message.message }}
+        <span class="status">{{ message.status }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <form id="form">
+      <input type="text" name="message" placeholder="Type a message" required />
+      <button type="submit">Send</button>
+    </form>
+
+    <script type="text/javascript">
+      function scrollToBottom() {
+        const messagesContainer = document.getElementById("messages");
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+
+      let url = `ws://${window.location.host}/ws/socket-server/`;
+      const chatSocket = new WebSocket(url);
+    
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") {
+          console.log("Tab is active - marking messages as seen");
+          markSeenMessages();
+        } else {
+          console.log("Tab is inactive");
+        }
+      });
+    
+      chatSocket.onmessage = function (e) {
+        let data = JSON.parse(e.data);
+        console.log(data);
+    
+        if (data.type === "status_update") {
+          console.log("Updating message statuses to 'seen'");
+          data.message_ids.forEach((id) => {
+            const messageElement = document.querySelector(`#message-${id} .status`);
+            if (messageElement) {
+              messageElement.textContent = data.status;
+            }
+          });
+        }
+    
+        if (data.type === "chat") {
+          const messagesContainer = document.querySelector("#messages");
+      
+          let messageElement = document.createElement("div");
+          messageElement.id = `message-${data.message_id}`;
+          messageElement.className =
+            "message " + (data.username === "{{ username }}" ? "sent" : "received");
+          messageElement.innerHTML = `${data.username}: ${data.message} <span class="status">${data.status}</span>`;
+      
+          messagesContainer.appendChild(messageElement);
+          scrollToBottom(); // Scroll to the bottom whenever a new message appears
+        }
+    
+        if (data.type === "user_activity") {
+          let activityElement = document.createElement("p");
+          activityElement.textContent = `${data.username} has ${data.activity}.`;
+          activityElement.classList.add("activity");
+          if (data.activity === "logged in") {
+            activityElement.classList.add("logged-in");
+          } else if (data.activity === "logged out") {
+            activityElement.classList.add("logged-out");
+          }
+          document.querySelector("#messages").appendChild(activityElement);
+        }
+      };
+    
+      chatSocket.onclose = () => {
+        console.log("WebSocket connection closed.");
+      };
+    
+      let user = "{{ username }}";
+      console.log("user is: ", user);
+    
+      let form = document.getElementById("form");
+      form.addEventListener("submit", (e) => {
+        e.preventDefault();
+        let message = e.target.message.value;
+        chatSocket.send(
+          JSON.stringify({
+            type: "chat",
+            message: message,
+            username: user,
+          })
+        );
+        form.reset();
+      });
+    
+      // Function to send mark_seen messages
+      function markSeenMessages() {
+        console.log("Marking messages as seen");
+        const messageIds = Array.from(document.querySelectorAll("[id^=message-]"))
+          .map((msg) => msg.id.split("-")[1]); // Extract IDs
+        console.log("Message IDs to mark as seen: ", messageIds);
+    
+        if (messageIds.length > 0) {
+          chatSocket.send(
+            JSON.stringify({
+              type: "mark_seen",
+              message_ids: messageIds,
+            })
+          );
+        }
+      }
+      window.onload = scrollToBottom;
+    </script>
+  </body>
+</html>
