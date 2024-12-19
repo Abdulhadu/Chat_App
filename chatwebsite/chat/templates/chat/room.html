@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Chat Room</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        height: 100vh;
+        background-color: #f2e8cf;
+        display: flex;
+        overflow: hidden;
+      }
+
+      .container {
+        display: flex;
+        width: 100%;
+        height: 100vh;
+        background-color: #f2e8cf;
+      }
+
+      /* Sidebar (Users List) Styling */
+      .sidebar {
+        width: 350px;
+        background-color: #f0f0f0;
+        border-right: 1px solid #6a994e;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .sidebar-header {
+        background-color: #a7c957;
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .sidebar-header h2 {
+        margin: 0;
+      }
+
+      .users-list {
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .user {
+        cursor: pointer;
+        padding: 15px;
+        border-bottom: 1px solid #d0d0d0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .user:hover {
+        background-color: #d0d0d0;
+      }
+
+      .user.active {
+        background-color: #6a994e;
+        color: white;
+      }
+
+      /* Chat Area Styling */
+      .chat-container {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        background-color: #f2e8cf;
+      }
+
+      .chat-header {
+        background-color: #a7c957;
+        color: white;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      #messages {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+        background-color: #f2e8cf;
+      }
+
+      .message {
+        max-width: 70%;
+        margin: 10px 0;
+        padding: 10px;
+        border-radius: 10px;
+        word-wrap: break-word;
+        clear: both;
+      }
+
+      .sent {
+        align-self: flex-end;
+        background-color: #6a994e;
+        color: white;
+        margin-left: auto;
+      }
+
+      .received {
+        align-self: flex-start;
+        background-color: #a7c957;
+        color: white;
+        margin-right: auto;
+      }
+
+      .status {
+        font-size: 10px;
+        color: #386641;
+        display: block;
+        margin-top: 5px;
+        text-align: right;
+      }
+
+      .activity {
+        text-align: center;
+        margin: 10px 0;
+        padding: 8px;
+        background-color: #e8c3c3;
+        color: #bc4749;
+        font-style: italic;
+        border-radius: 5px;
+      }
+
+      .activity.logged-in {
+        background-color: #cce3d2;
+        color: #6a994e;
+      }
+
+      .activity.logged-out {
+        background-color: #f9e2d4;
+        color: #bc4749;
+      }
+
+      .chat-input {
+        display: flex;
+        padding: 15px;
+        background-color: #f0f0f0;
+      }
+
+      .chat-input input {
+        flex-grow: 1;
+        padding: 10px;
+        margin-right: 10px;
+        border: 1px solid #6a994e;
+        border-radius: 4px;
+      }
+
+      .chat-input button {
+        padding: 10px 20px;
+        background-color: #a7c957;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .chat-input button:hover {
+        background-color: #6a994e;
+      }
+
+      .no-room-message {
+        text-align: center;
+        color: #bc4749;
+        padding: 20px;
+        background-color: #f9e2d4;
+        border-radius: 5px;
+        margin: 20px;
+      }
+
+      .unread-count {
+        background-color: #e53e3e;
+        color: white;
+        border-radius: 50%;
+        min-width: 20px;
+        height: 20px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        margin-right: 8px;
+        padding: 0 6px;
+    }
+    
+    .unread-count:empty {
+        display: none;
+    }
+    
+      /* Modal Styles */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5); /* Transparent background */
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        width: 400px;
+        max-width: 90%;
+        text-align: center;
+      }
+
+      .modal-content h2 {
+        margin-bottom: 15px;
+        font-size: 24px;
+        color: #333;
+      }
+
+      .modal-content input,
+      .modal-content button {
+        margin-top: 10px;
+        width: 100%;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+
+      .modal-content button {
+        background-color: #a7c957;
+        color: white;
+        border: none;
+        cursor: pointer;
+      }
+
+      .modal-content button:hover {
+        background-color: #6a994e;
+      }
+
+      .close-btn {
+        font-size: 20px;
+        color: #333;
+        float: right;
+        cursor: pointer;
+      }
+
+      .close-btn:hover {
+        color: red;
+      }
+      .button-container {
+        display: flex; 
+        gap: 10px;
+        margin-top: 20px; 
+      }
+
+      .create-group-btn {
+        background-color: #4caf50; 
+        color: white; 
+        text-decoration: none;
+        font-size: 14px;
+        padding: 5px 10px;
+        border-radius: 4px;
+        border: 1px solid #006400;
+        transition: background-color 0.3s ease; 
+      }
+
+      .create-group-btn:hover {
+        background-color: #45a049; 
+      }
+
+      .create-group-btn:active {
+        background-color: #3e8e41;
+        transform: scale(0.98); 
+      }
+
+      .create-group-btn:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(72, 239, 145, 0.5);
+      }
+
+      .logout {
+        text-decoration: none;
+        font-size: 14px;
+        padding: 5px 10px;
+        border: 1px solid #bc4749;
+        border-radius: 4px;
+        color: #f2e8cf;
+        background-color: #bc4749;
+        transition: background-color 0.3s ease;
+      }
+
+      .logout:hover {
+        background-color: #a73d41; 
+      }
+      .message-timestamp {
+        font-size: 0.7rem;
+        color: #d3d3d3;
+        align-self: flex-end;
+        margin-bottom: 4px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>{{ greeting }}, {{ username }}</h2>
+                <div class="button-container">
+                    <button onclick="openGroupModal()" class="create-group-btn">
+                        Create Group
+                    </button>
+                    <a class="logout" href="{% url 'logout' %}">Logout</a>
+                </div>
+            </div>
+
+            <div class="users-list">
+                <h3 style="padding: 15px">Online Users</h3>
+                {% for user in online_users %}
+                <div
+                 class="user_{{ user.user.username }} user"
+                 onclick="redirectToRoom('{{ user.user.username }}')"
+                 style="
+                     padding: 10px;
+                     border-bottom: 1px solid #ddd;
+                     cursor: pointer;">
+                 <span>{{ user.user.username }}</span>
+                 {% if unread_counts %}
+                     {% with unread_count=unread_counts.user.user.username %}
+                         {% if unread_count %}
+                             <span class="unread-count">({{ unread_count }})</span>
+                         {% else %}
+                             <span class="unread-count"></span>
+                         {% endif %}
+                     {% endwith %}
+                 {% endif %}
+                 <small
+                     style="margin-left: 10px; color: {% if user.is_online %}green{% else %}gray{% endif %};">
+                     {% if user.is_online %}Online{% else %}Offline{% endif %}
+                 </small>
+             </div>
+                {% endfor %}
+
+                <h3 style="padding: 15px">Groups</h3>
+                {% for group in user_groups %}
+                <div
+                    class="user group_{{ group.name }}"
+                    onclick="redirectToGroup('{{ group.name }}')"
+                    style="
+                        padding: 10px;
+                        border-bottom: 1px solid #ddd;
+                        cursor: pointer;">
+                    <span>{{ group.name }}</span>
+                    <span class="unread-count"></span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Group Creation Modal -->
+        <div id="groupModal" class="modal">
+            <div class="modal-content">
+                <span class="close-btn" onclick="closeGroupModal()">&times;</span>
+                <h2>Create New Group</h2>
+                <form id="groupCreationForm">
+                    <input
+                        type="text"
+                        id="groupName"
+                        name="group_name"
+                        placeholder="Enter Group Name"
+                        required
+                    />
+                    <div class="user-selection">
+                        <h3>Select Group Members</h3>
+                        {% for user in all_users %}
+                        <label class="user-checkbox">
+                            <input
+                                type="checkbox"
+                                name="selected_users"
+                                value="{{ user.username }}"
+                            />
+                            {{ user.username }}
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <button type="submit">Create Group</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-container">
+            <div class="chat-header">
+                <h2>
+                    {% if room_name %} 
+                        Messaging with {{ room_name }} 
+                    {% else %} 
+                        Select a User to Start Chatting 
+                    {% endif %}
+                </h2>
+            </div>
+
+            <div id="messages">
+                {% if not room_name %}
+                <div class="no-room-message">
+                    Start chatting by selecting a user from the online users list
+                </div>
+                {% else %} 
+                {% if messages %}
+                    {% for message in messages %}
+                    <div
+                        id="message-{{ message.id }}"
+                        data-message-id="{{ message.id }}"
+                        class="message {% if message.user.username == username %}sent{% else %}received{% endif %}"
+                        data-sender="{{ message.user.username }}"
+                    >
+                        <div class="message-content">
+                            {{ message.user.username }}: {{ message.message }}
+                            {% if message.user.username == username %}
+                            <span class="status">{{ message.status }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="message-timestamp">
+                            {{message.local_timestamp|date:"h:i A" }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+                {% endif %}
+            </div>
+
+            <form id="form" class="chat-input">
+                <input
+                    type="text"
+                    name="message"
+                    placeholder="Type a message"
+                    required
+                    {% if not room_name %}disabled{% endif %}
+                />
+                <button type="submit" {% if not room_name %}disabled{% endif %}>
+                    Send
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        const BASE_URL = "/chat";
+        let roomName = "{{ room_name }}";
+        let currentUser = "{{ username }}";
+        let socket; 
+        
+        // Redirect functions
+        function redirectToRoom(username) {
+            roomName = username;
+            window.location.href = `/room/${roomName}/`;
+        }
+
+        function redirectToGroup(username) {
+            roomName = username;
+            window.location.href = `/group/${roomName}/`;
+        }
+
+        // Modal functions
+        function openGroupModal() {
+            document.getElementById('groupModal').style.display = 'flex';
+        }
+
+        function closeGroupModal() {
+            document.getElementById('groupModal').style.display = 'none';
+        }
+
+        // Message seen logic
+        function markMessagesSeen(messageIds) {
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                console.warn('WebSocket is not open. Cannot mark messages as seen.');
+                return;
+            }
+
+            const payload = {
+                type: 'mark_seen',
+                message_ids: messageIds,
+                current_user: currentUser,
+                room_name: roomName
+            };
+
+            try {
+                socket.send(JSON.stringify(payload));
+                
+                // Locally mark messages as seen
+               messageIds.forEach(messageId => {
+                  const messageElement = document.getElementById(`message-${messageId}`);
+                    if (messageElement) {
+                       messageElement.classList.add('seen');
+                   }
+               });
+            } catch (error) {
+                console.error('Error marking messages as seen:', error);
+            }
+        }
+
+
+        function setupMessageSeenObserver() {
+          console.log("Setting up message seen observer"); 
+      
+          const messageElements = document.querySelectorAll('.message:not(.seen)');
+          // console.log("Unseen message elements:", messageElements.length);
+      
+          // If no unseen messages, exit early
+          if (messageElements.length === 0) {
+              console.log("No unseen messages to observe");
+              return;
+          }
+          
+          const observer = new IntersectionObserver((entries) => {
+              // console.log("Intersection Observer entries:", entries);
+      
+              const unseenMessageIds = entries
+                  .filter(entry => {
+                      console.log("Entry is intersecting:", entry.isIntersecting);
+                      return entry.isIntersecting;
+                  })
+                  .map(entry => {
+                      const messageId = entry.target.dataset.messageId;
+                      console.log("Checking message ID:", messageId);
+                      return messageId;
+                  })
+                  .filter(Boolean); 
+              
+              // console.log("Unseen message IDs:", unseenMessageIds);
+              
+              if (unseenMessageIds.length > 0) {
+                  console.log("Marking messages as seen:", unseenMessageIds);
+                  markMessagesSeen(unseenMessageIds);
+              }
+          }, {
+              threshold: 0.5, // Trigger when 50% of message is visible
+              root: document.getElementById('messages') // Optional: specify the scrollable container
+          });
+      
+          messageElements.forEach(el => {
+              // Additional logging
+              console.log("Checking message element:", el);
+              
+              // Ensure the element has a message-id data attribute
+              if (el.dataset.messageId) {
+                  console.log("Observing message:", el.dataset.messageId);
+                  observer.observe(el);
+              } else {
+                  console.warn("Message element missing data-message-id:", el);
+              }
+          });
+      }
+      
+      // Ensure this is called at the right time
+      function attachMessageSeenObserver() {
+          setTimeout(() => {
+              console.log("Attaching message seen observer");
+              setupMessageSeenObserver();
+          }, 100);
+      }
+      
+      // Call this after messages are loaded
+      window.onload = () => {
+          initializeWebSocket();
+          scrollToBottom();
+          attachMessageSeenObserver();
+      };
+      
+      // Also call after adding new messages
+      function onNewMessageAdded() {
+          scrollToBottom();
+          attachMessageSeenObserver();
+      }
+
+      // Scroll to bottom function
+      function scrollToBottom() {
+            const messagesContainer = document.getElementById("messages");
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+      }
+
+
+
+      function initializeWebSocket() {
+          socket = new WebSocket(
+              `ws://${window.location.host}/ws/chat/${roomName}/`
+          );
+
+          socket.onopen = () => {
+              console.log('WebSocket connection established');
+              setupMessageSeenObserver();
+          };
+
+          // Handle status updates
+          socket.onmessage = function (e) {
+
+              let data = JSON.parse(e.data);
+              console.log('Received WebSocket message:', data);
+          
+              if (data.type === "status_update") {
+                console.log("Status is updating...");
+                
+                // Update unread counts for users
+                Object.entries(data.unread_counts || {}).forEach(([username, count]) => {
+                  console.log(`Updating unread count for: ${username}, Count: ${count}`);
+                  const userElement = document.querySelector(`.user_${username} .unread-count`);
+                  if (userElement) {
+                      console.log(userElement)
+                      userElement.textContent = count > 0 ? `(${count})` : '';
+                      userElement.style.display = count > 0 ? 'inline' : 'none'; // Ensure visibility
+                  } else {
+                      console.warn(`User element not found for username: ${username}`);
+                  }
+                });
+        
+                // Update message statuses
+                (data.message_ids || []).forEach((id) => {
+                    const messageElement = document.getElementById(`message-${id}`);
+                    console.log("Updating message ID:", id, messageElement);
+        
+                    if (messageElement) {
+                        const statusElement = messageElement.querySelector(".status");
+                        if (statusElement) {
+                            statusElement.textContent = data.status || 'Seen';
+                        } else {
+                            console.warn(`Status element not found for message ID: ${id}`);
+                        }
+        
+                        messageElement.classList.add('seen');
+                    } else {
+                        console.warn(`Message element not found for ID: ${id}`);
+                    }
+                });
+              }
+              
+              // Handle new chat messages
+              if (data.type === "chat") {
+                  const messagesContainer = document.getElementById("messages");
+                  let messageElement = document.createElement("div");
+                  messageElement.id = `message-${data.message_id}`;
+                  messageElement.dataset.messageId = data.message_id;
+                  messageElement.dataset.sender = data.username;
+                  messageElement.className = `message ${data.username === currentUser ? 'sent' : 'received'}`;
+                  const messageContentDiv = document.createElement("div");
+                  messageContentDiv.className = "message-content";
+                  
+                  const timestampDiv = document.createElement("div");
+                  timestampDiv.className = "message-timestamp";
+                  
+                  // Timestamp formatting
+                  let formattedTime = new Date().toLocaleTimeString([], {
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: true
+                  });
+                  // Add message content
+                  if (data.username === currentUser) {
+                      messageContentDiv.innerHTML = `${data.username}: ${data.message} <span class="status">${data.status || ''}</span>`;
+                  } else {
+                      messageContentDiv.innerHTML = `${data.username}: ${data.message}`;
+                  }
+                  timestampDiv.textContent = formattedTime;
+                  messageElement.appendChild(messageContentDiv);
+                  messageElement.appendChild(timestampDiv);
+                  messagesContainer.appendChild(messageElement);
+                  scrollToBottom();
+                  setupMessageSeenObserver(); // Reattach observer for new messages
+              }
+            };
+
+            socket.onclose = () => {
+                console.log("WebSocket connection closed. Attempting to reconnect...");
+                setTimeout(initializeWebSocket, 1000);
+            };
+        }
+
+        // Group creation form submission
+        document.getElementById('groupCreationForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const groupName = document.getElementById('groupName').value;
+            const selectedUsers = Array.from(
+                document.querySelectorAll('input[name="selected_users"]:checked')
+            ).map((checkbox) => checkbox.value);
+
+            if (!groupName) {
+                alert('Group name is required.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('group_name', groupName);
+            selectedUsers.forEach(user => formData.append('selected_users', user));
+
+            fetch('/create-group/', {
+                method: 'POST',
+                body: formData,
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.success) {
+                    alert(`Group "${data.group_name}" created successfully with members: ${data.members.join(', ')}`);
+                    location.reload();
+                } else {
+                    alert(`Error: ${data.error}`);
+                }
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                alert('An unexpected error occurred.');
+            });
+        });
+
+        // Message sending form
+        let form = document.getElementById("form");
+        form.addEventListener("submit", (e) => {
+            e.preventDefault();
+            let message = e.target.message.value;
+            
+            if (socket && socket.readyState === WebSocket.OPEN) {
+                socket.send(
+                    JSON.stringify({
+                        type: "chat",
+                        message: message,
+                        username: currentUser,
+                        recipient: roomName,
+                        room_name: roomName,
+                    })
+                );
+                form.reset();
+            } else {
+                console.error('WebSocket is not open');
+                alert('Unable to send message. Please check your connection.');
+            }
+        });
+
+        // Initialize WebSocket on page load
+        window.onload = () => {
+            initializeWebSocket();
+            scrollToBottom();
+        };
+    </script>
+</body>
+</html>

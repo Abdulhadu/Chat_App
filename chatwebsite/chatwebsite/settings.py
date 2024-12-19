@@ -25,9 +25,9 @@ SECRET_KEY = 'django-insecure-*(de%)tt(x7*whx*u)-yi4-d7(sa$n-3t4rqfccvh3=quap3v3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
-
+CORS_ALLOWED_ORIGINS = ["*"]
 # Application definition
 
 INSTALLED_APPS = [
@@ -83,13 +83,13 @@ DATABASES = {
     }
 }
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = ["*"]
 
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("redis", 6379)],
+            "hosts": [("127.0.0.1", 6379)],
         },
     },
 }
@@ -118,7 +118,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Karachi'
 
 USE_I18N = True
 
